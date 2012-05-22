@@ -14,8 +14,12 @@ WS_HEADER_KEYS = ['Upgrade',
 
 
 def ws_response(raw_request):
+    
     parsed = parse_request(raw_request)
-    return handshake_response(parsed)
+    response = handshake_response(parsed)
+    if response:
+        return response
+    return None # TODO: raise Error
 
 
 def handshake_response(request):
@@ -23,8 +27,7 @@ def handshake_response(request):
     the initial client request"""
     
     response = ["HTTP/1.1 101 Switching Protocols"]
-    print request
-    print "\n"
+
     if request.get('Upgrade') == 'websocket':
         response.append("Upgrade: websocket")
     else:
@@ -39,12 +42,14 @@ def handshake_response(request):
     else:
         return None
     response.append('\r\n\r\n')
-    r = '\r\n'.join(response)
-    print r
-    return r
+    return '\r\n'.join(response)
 
       
 def confirm_client_key(client_key):
+    """Handshake requirement using the UUID from RFC 6455; 
+    accepts the Sec-WebSocket-Key from an initial handshake 
+    request."""
+
     concated_key = client_key + WS_UUID
     s1 = sha1(concated_key)
     return b64encode(s1.digest())
@@ -77,6 +82,10 @@ def parse_line(line):
 
 
 def parse_request(raw_request):
+    """Given a raw HTTP request for an initial websocket 
+    handshake negotiation, return a Python dict that contains
+    the request information."""
+
     lines = raw_request.splitlines()
     request_object = {}
     for line in lines:
